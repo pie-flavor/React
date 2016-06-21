@@ -1,5 +1,6 @@
 package flavor.pie.react;
 
+import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
 import com.google.inject.Inject;
 import ninja.leaping.configurate.ConfigurationNode;
@@ -12,6 +13,7 @@ import org.spongepowered.api.GameState;
 import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.filter.cause.First;
 import org.spongepowered.api.event.game.GameReloadEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
@@ -19,10 +21,13 @@ import org.spongepowered.api.event.message.MessageChannelEvent;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.scheduler.Task;
+import org.spongepowered.api.service.economy.Currency;
+import org.spongepowered.api.service.economy.EconomyService;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.action.TextActions;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -52,6 +57,9 @@ public class React {
     Task task;
     Random random;
     Instant started;
+    List<String> commands;
+    double reward;
+    Currency currency;
     @Listener
     public void preInit(GamePreInitializationEvent e) throws IOException, ObjectMappingException {
         random = new Random();
@@ -81,11 +89,21 @@ public class React {
     }
     void loadConfig() throws ObjectMappingException {
         TypeToken<Text> textToken = TypeToken.of(Text.class);
-        words = root.getNode("words").getList(TypeToken.of(String.class));
+        TypeToken<String> stringToken = TypeToken.of(String.class);
+        words = root.getNode("words").getList(stringToken);
         prefix = root.getNode("prefix").getValue(textToken, Text.of());
         text = root.getNode("text").getValue(textToken, Text.of());
         suffix = root.getNode("suffix").getValue(textToken, Text.of());
         delay = root.getNode("delay").getInt();
+        commands = root.getNode("rewards", "commands").getList(stringToken, Lists.newArrayList());
+        game.getServiceManager().provide(EconomyService.class).ifPresent(svc -> {
+            reward = root.getNode("rewards", "economy", "amount").getDouble(0);
+            try {
+                currency = root.getNode("rewards", "economy", "currency").getValue(TypeToken.of(Currency.class), svc.getDefaultCurrency());
+            } catch (ObjectMappingException ex) {
+                currency = svc.getDefaultCurrency();
+            }
+        });
         if (task != null) task.cancel();
         task = Task.builder().execute(this::newGame).delay(delay, TimeUnit.SECONDS).interval(delay, TimeUnit.SECONDS).name("react-S-createGame").submit(this);
     }
@@ -120,6 +138,12 @@ public class React {
             game.getServer().getBroadcastChannel().send(Text.of(p.getName()+" has won! Time: "+(Instant.now().getEpochSecond() - started.getEpochSecond()) +" seconds!"));
             inGame = false;
         }
+        commands.forEach(s -> game.getCommandManager().process(s.startsWith("*") ? game.getServer().getConsole() : p, s.replaceAll("^\\*", "")));
+        game.getServiceManager().provide(EconomyService.class).ifPresent(svc -> {
+            if (reward > 0) {
+                svc.getOrCreateAccount(p.getUniqueId()).ifPresent(acc -> acc.deposit(currency, BigDecimal.valueOf(reward), Cause.builder().from(e.getCause()).named("PluginReact", container).build()));
+            }
+        });
     }
     void disable() {
         game.getEventManager().unregisterPluginListeners(this);

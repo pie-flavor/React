@@ -5,6 +5,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.inject.Inject;
 import ninja.leaping.configurate.ConfigurationNode;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
+import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
 import org.slf4j.Logger;
@@ -87,7 +88,8 @@ public class React {
             throw ex;
         }
     }
-    void loadConfig() throws ObjectMappingException {
+    void loadConfig() throws IOException, ObjectMappingException {
+        updateConfig();
         TypeToken<Text> textToken = TypeToken.of(Text.class);
         TypeToken<String> stringToken = TypeToken.of(String.class);
         words = root.getNode("words").getList(stringToken);
@@ -106,6 +108,16 @@ public class React {
         });
         if (task != null) task.cancel();
         task = Task.builder().execute(this::newGame).delay(delay, TimeUnit.SECONDS).interval(delay, TimeUnit.SECONDS).name("react-S-createGame").submit(this);
+    }
+    void updateConfig() throws IOException, ObjectMappingException {
+        int version = root.getNode("version").getInt();
+        HoconConfigurationLoader assetLoader = HoconConfigurationLoader.builder().setURL(game.getAssetManager().getAsset(this, "default.conf").get().getUrl()).build();
+        ConfigurationNode assetRoot = assetLoader.load();
+        if (version < 2) {
+            root.getNode("rewards").setValue(assetRoot.getNode("rewards").getValue());
+            root.getNode("version").setValue(2);
+        }
+        loader.save(root);
     }
     @Listener
     public void reload(GameReloadEvent e) throws IOException, ObjectMappingException {

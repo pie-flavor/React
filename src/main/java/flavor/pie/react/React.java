@@ -61,6 +61,7 @@ public class React {
     List<String> commands;
     double reward;
     Currency currency;
+    int minPlayers;
     @Listener
     public void preInit(GamePreInitializationEvent e) throws IOException, ObjectMappingException {
         random = new Random();
@@ -98,6 +99,7 @@ public class React {
         suffix = root.getNode("suffix").getValue(textToken, Text.of());
         delay = root.getNode("delay").getInt();
         commands = root.getNode("rewards", "commands").getList(stringToken, Lists.newArrayList());
+        minPlayers = root.getNode("min-players").getInt();
         game.getServiceManager().provide(EconomyService.class).ifPresent(svc -> {
             reward = root.getNode("rewards", "economy", "amount").getDouble(0);
             try {
@@ -116,6 +118,10 @@ public class React {
         if (version < 2) {
             root.getNode("rewards").setValue(assetRoot.getNode("rewards").getValue());
             root.getNode("version").setValue(2);
+        }
+        if (version < 3) {
+            root.getNode("min-players").setValue(assetRoot.getNode("min-players").getValue());
+            root.getNode("version").setValue(3);
         }
         loader.save(root);
     }
@@ -136,6 +142,7 @@ public class React {
     }
     void newGame() {
         if (!game.getState().equals(GameState.SERVER_STARTED)) return;
+        if (minPlayers > 0 && minPlayers < game.getServer().getOnlinePlayers().size()) return;
         inGame = true;
         current = words.get(random.nextInt(words.size()));
         Text fullText = text.toBuilder().onHover(TextActions.showText(Text.of(current.trim()))).build();

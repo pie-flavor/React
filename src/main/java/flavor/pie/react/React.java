@@ -156,13 +156,14 @@ public class React {
         if (inGame && chat.equalsIgnoreCase(current)) {
             game.getServer().getBroadcastChannel().send(Text.of(p.getName()+" has won! Time: "+(Instant.now().getEpochSecond() - started.getEpochSecond()) +" seconds!"));
             inGame = false;
+            commands.forEach(s -> game.getCommandManager().process(s.startsWith("*") ? game.getServer().getConsole() : p, s.replaceAll("^\\*", "").replace("$winner", p.getName())));
+            game.getServiceManager().provide(EconomyService.class).ifPresent(svc -> {
+                if (reward > 0) {
+                    svc.getOrCreateAccount(p.getUniqueId()).ifPresent(acc -> acc.deposit(currency, BigDecimal.valueOf(reward), Cause.builder().from(e.getCause()).named("PluginReact", container).build()));
+                }
+            });
         }
-        commands.forEach(s -> game.getCommandManager().process(s.startsWith("*") ? game.getServer().getConsole() : p, s.replaceAll("^\\*", "").replace("$winner", p.getName())));
-        game.getServiceManager().provide(EconomyService.class).ifPresent(svc -> {
-            if (reward > 0) {
-                svc.getOrCreateAccount(p.getUniqueId()).ifPresent(acc -> acc.deposit(currency, BigDecimal.valueOf(reward), Cause.builder().from(e.getCause()).named("PluginReact", container).build()));
-            }
-        });
+
     }
     void disable() {
         game.getEventManager().unregisterPluginListeners(this);

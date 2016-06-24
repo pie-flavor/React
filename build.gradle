@@ -3,7 +3,7 @@ plugins {
     id 'idea'
 }
 group 'flavor.pie'
-version '1.2.2'
+version '1.2.3'
 dependencies {
     compile 'org.spongepowered:spongeapi:4.1.0'
 }

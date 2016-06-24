@@ -72,9 +72,10 @@ public class React {
             disable();
             throw ex;
         }
-        if (root.getNode("version").isVirtual()) {
+        if (root.getNode("version").getInt() < 1) {
             try {
                 game.getAssetManager().getAsset(this, "default.conf").get().copyToFile(path);
+                root = loader.load();
             } catch (IOException ex) {
                 logger.error("Could not copy default config!");
                 disable();

@@ -143,7 +143,7 @@ public class React {
     }
     void newGame() {
         if (!game.getState().equals(GameState.SERVER_STARTED)) return;
-        if (minPlayers > 0 && minPlayers < game.getServer().getOnlinePlayers().size()) return;
+        if (minPlayers > game.getServer().getOnlinePlayers().size()) return;
         inGame = true;
         current = words.get(random.nextInt(words.size()));
         Text fullText = text.toBuilder().onHover(TextActions.showText(Text.of(current.trim()))).build();

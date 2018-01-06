@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-@Plugin(id="react",name="React",description="A little game to be played in chat.",authors="pie_flavor",version="1.2.4")
+@Plugin(id="react", name="React", description="A little game to be played in chat.", authors="pie_flavor", version="1.2.4-SNAPSHOT")
 public class React {
     @Inject
     Game game;

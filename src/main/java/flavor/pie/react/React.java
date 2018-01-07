@@ -47,7 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Plugin(id="react", name="React", description="A little game to be played in chat.", authors="pie_flavor", version="1.2.4-SNAPSHOT")
+@Plugin(id="react", name="React", description="A little game to be played in chat.", authors="pie_flavor",
+        version="1.3.0-SNAPSHOT")
 public class React {
     @Inject
     Game game;

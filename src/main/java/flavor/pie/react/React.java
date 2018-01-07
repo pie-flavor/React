@@ -102,12 +102,7 @@ public class React {
         if (task != null) {
             task.cancel();
         }
-        task = Task.builder()
-                .execute(this::newGame)
-                .delay(config.delay, TimeUnit.SECONDS)
-                .interval(config.delay, TimeUnit.SECONDS)
-                .name("react-S-createGame")
-                .submit(this);
+        scheduleGame();
     }
 
     private void updateConfig(ConfigurationNode root) throws IOException, ObjectMappingException {
@@ -142,6 +137,14 @@ public class React {
         Text toShow = config.prefix.concat(fullText).concat(config.suffix);
         game.getServer().getBroadcastChannel().send(toShow);
         started = Instant.now();
+        scheduleGame();
+    }
+
+    private void scheduleGame() {
+        task = Task.builder()
+                .execute(this::newGame)
+                .delay(getDelay(), TimeUnit.SECONDS)
+                .submit(this);
     }
 
 
@@ -192,5 +195,13 @@ public class React {
                 .successCount(1)
                 .queryResult(wins > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) wins)
                 .build();
+    }
+
+    private int getDelay() {
+        if (config.maxDelay <= config.delay) {
+            return config.delay;
+        } else {
+            return random.nextInt(config.maxDelay - config.delay + 1) + config.delay;
+        }
     }
 }

@@ -21,6 +21,7 @@ public class Config {
     @Setting public Text suffix = Text.EMPTY;
     @Setting public List<String> words = Collections.emptyList();
     @Setting public int delay = 300;
+    @Setting("max-delay") public int maxDelay = 0;
     @Setting("min-players") public int minPlayers = 5;
     @Setting public RewardsBlock rewards = new RewardsBlock();
 

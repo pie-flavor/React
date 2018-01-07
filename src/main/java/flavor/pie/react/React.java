@@ -12,13 +12,24 @@ import org.bstats.sponge.MetricsLite;
 import org.slf4j.Logger;
 import org.spongepowered.api.Game;
 import org.spongepowered.api.GameState;
+import org.spongepowered.api.command.CommandException;
+import org.spongepowered.api.command.CommandResult;
+import org.spongepowered.api.command.CommandSource;
+import org.spongepowered.api.command.args.CommandContext;
+import org.spongepowered.api.command.args.GenericArguments;
+import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.config.DefaultConfig;
+import org.spongepowered.api.data.DataRegistration;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.filter.Getter;
 import org.spongepowered.api.event.filter.cause.First;
+import org.spongepowered.api.event.filter.data.Has;
 import org.spongepowered.api.event.game.GameReloadEvent;
+import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.message.MessageChannelEvent;
+import org.spongepowered.api.event.network.ClientConnectionEvent;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.scheduler.Task;
@@ -62,6 +73,23 @@ public class React {
         TypeSerializers.getDefaultSerializers().registerType(TypeToken.of(BigDecimal.class), new BigDecimalSerializer());
         random = new Random();
         loadConfig();
+        DataRegistration.builder()
+                .dataClass(ReactData.class)
+                .immutableClass(ReactData.Immutable.class)
+                .builder(new ReactData.Builder())
+                .manipulatorId("react_data")
+                .dataName("ReactData")
+                .buildAndRegister(container);
+    }
+
+    @Listener
+    public void init(GameInitializationEvent e) {
+        CommandSpec wins = CommandSpec.builder()
+                .arguments(GenericArguments.playerOrSource(Text.of("player")))
+                .executor(this::wins)
+                .description(Text.of("Gets a player's win count"))
+                .build();
+        game.getCommandManager().register(this, wins, "wins");
     }
 
     private void loadConfig() throws IOException, ObjectMappingException {
@@ -139,6 +167,7 @@ public class React {
                                     game.getCauseStackManager().getCurrentCause()));
                 }
             });
+            p.offer(ReactKeys.GAMES_WON, p.get(ReactKeys.GAMES_WON).get() + 1);
         }
 
     }
@@ -146,5 +175,22 @@ public class React {
     private void disable() {
         game.getEventManager().unregisterPluginListeners(this);
         game.getCommandManager().getOwnedBy(this).forEach(game.getCommandManager()::removeMapping);
+    }
+
+    @Listener
+    public void onJoin(ClientConnectionEvent.Join e,
+                       @Getter("getTargetEntity") @Has(value = ReactData.class, inverse = true) Player p) {
+        ReactData data = p.getOrCreate(ReactData.class).get();
+        p.offer(data);
+    }
+
+    public CommandResult wins(CommandSource src, CommandContext args) throws CommandException {
+        Player p = args.<Player>getOne("player").get();
+        long wins = p.get(ReactKeys.GAMES_WON).get();
+        src.sendMessage(Text.of("Player ", p.getName(), " has won ", wins, " times."));
+        return CommandResult.builder()
+                .successCount(1)
+                .queryResult(wins > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) wins)
+                .build();
     }
 }

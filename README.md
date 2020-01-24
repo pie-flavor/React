@@ -22,7 +22,7 @@ The `rewards{}` block handles extra handling when someone wins. Inside `rewards{
 
 ### Changelog
 
-Note: The latest version of this plugin is compatible with both API 5 and API 4.1
+Note: The latest version of this plugin is compatible with both API 5 and API 4.1.
 
 1.0.0: If you hover over the version number, it'll tell you.
 
